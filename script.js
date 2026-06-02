@@ -12,7 +12,6 @@ const INTRO_TIMING = {
   holdFor: 2500,
   fadeFor: 1400
 };
-const INTRO_COOLDOWN = 4 * 60 * 60 * 1000;
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:4173" : "";
 
 const greeting = document.querySelector("#greeting");
@@ -234,12 +233,7 @@ function settleWithoutIntro() {
 }
 
 function shouldPlayIntroOnLoad() {
-  if (appState?.lastWakeAt) {
-    return localStorage.getItem("customBGPlash.lastIntroWakeAt") !== appState.lastWakeAt;
-  }
-
-  const saved = Number(localStorage.getItem("customBGPlash.lastIntroAt") || 0);
-  return !saved || Date.now() - saved > INTRO_COOLDOWN;
+  return true;
 }
 
 function setCalendarPanel(open) {
