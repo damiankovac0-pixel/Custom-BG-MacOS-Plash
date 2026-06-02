@@ -25,6 +25,7 @@ const todoInput = document.querySelector("#todoInput");
 const todoList = document.querySelector("#todoList");
 const weatherSignal = document.querySelector("#weatherSignal");
 const calendarSignal = document.querySelector("#calendarSignal");
+const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:4173" : "";
 
 let introTimers = [];
 let lastIntroAt = 0;
@@ -78,7 +79,7 @@ function saveFallbackTodos() {
 
 async function fetchState() {
   try {
-    const response = await fetch("/api/state", { cache: "no-store" });
+    const response = await fetch(`${API_BASE}/api/state`, { cache: "no-store" });
     if (!response.ok) throw new Error(`State request failed: ${response.status}`);
     appState = await response.json();
     todos = Array.isArray(appState.today?.todos) ? appState.today.todos : [];
@@ -118,7 +119,7 @@ async function addTodo(text) {
     return;
   }
 
-  const response = await fetch("/api/todos", {
+  const response = await fetch(`${API_BASE}/api/todos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text })
@@ -139,7 +140,7 @@ async function updateTodo(id, patch) {
     return;
   }
 
-  const response = await fetch(`/api/todos/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${API_BASE}/api/todos/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch)
@@ -159,7 +160,7 @@ async function removeTodo(id) {
     return;
   }
 
-  const response = await fetch(`/api/todos/${encodeURIComponent(id)}`, { method: "DELETE" });
+  const response = await fetch(`${API_BASE}/api/todos/${encodeURIComponent(id)}`, { method: "DELETE" });
 
   if (!response.ok) throw new Error(`Todo remove failed: ${response.status}`);
   appState = await response.json();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <title>CustomBGPlash</title>
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body class="preboot intro-active">
     <main class="wallpaper" aria-label="Personal time aware macOS wallpaper">
@@ -26,22 +26,16 @@
         <span id="ambientDate">Mon, Jan 1</span>
       </aside>
 
+      <aside class="background-signals" aria-label="Weather and calendar signals">
+        <span id="weatherSignal">Weather syncing</span>
+        <span id="calendarSignal">Calendar syncing</span>
+      </aside>
+
       <section class="dashboard" aria-label="Productivity dashboard">
         <div class="today-panel">
           <p class="panel-kicker">Today</p>
           <h2 id="todayHeadline">Set the pace.</h2>
           <p class="today-summary" id="todaySummary">No tasks yet. Add one thing worth finishing.</p>
-
-          <div class="signal-grid" aria-label="Daily signals">
-            <article>
-              <span>Weather</span>
-              <strong class="offline-signal" id="weatherSignal">Offline</strong>
-            </article>
-            <article>
-              <span>Calendar</span>
-              <strong class="offline-signal" id="calendarSignal">Local soon</strong>
-            </article>
-          </div>
 
           <form class="todo-form" id="todoForm">
             <label for="todoInput">Add task</label>
@@ -56,6 +50,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=9"></script>
   </body>
 </html>
