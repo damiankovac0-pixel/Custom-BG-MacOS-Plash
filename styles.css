@@ -124,8 +124,8 @@ body.intro-leaving .intro {
   margin: 0;
   color: var(--muted);
   font-size: clamp(0.78rem, 1.25vw, 1rem);
-  font-weight: 720;
-  letter-spacing: 0.18em;
+  font-weight: 650;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
@@ -326,27 +326,29 @@ body.intro-active .dashboard {
 }
 
 .intro h1 {
-  margin: 0.2em 0 0.22em;
-  max-width: 12ch;
+  margin: 0.28em auto 0.3em;
+  max-width: 16ch;
   color: var(--ink);
-  font-size: clamp(4rem, 11.5vw, 10.5rem);
-  line-height: 0.88;
-  letter-spacing: -0.085em;
-  font-weight: 900;
+  font-size: clamp(3.4rem, 8.9vw, 8.6rem);
+  line-height: 0.96;
+  letter-spacing: 0.005em;
+  font-stretch: normal;
+  font-weight: 720;
+  overflow-wrap: normal;
 }
 
 .intro-time {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(2.2rem, 5vw, 4.8rem);
+  font-size: clamp(2.1rem, 4.3vw, 4.2rem);
   line-height: 1;
-  letter-spacing: -0.065em;
-  font-weight: 800;
+  letter-spacing: 0.01em;
+  font-weight: 680;
 }
 
 .intro-date {
   margin-top: 0.9rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: none;
 }
 
@@ -387,7 +389,7 @@ body.preboot .background-stage {
 
 @media (max-width: 720px) {
   .intro h1 {
-    font-size: clamp(3.6rem, 18vw, 7.2rem);
+    font-size: clamp(3rem, 14vw, 6.2rem);
   }
 
   .ambient-clock {

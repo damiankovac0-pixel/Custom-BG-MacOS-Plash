@@ -2,6 +2,8 @@
 
 An offline Plash wallpaper for macOS. It starts with a clean black wake screen, greets Damian based on the time of day, shows the current time and date, then fades into a quiet background with a discreet clock/date display.
 
+See `docs/ARCHITECTURE.md` for the planned local helper architecture that will handle wake events, Obsidian, GitHub, weather, calendar, and durable todo storage properly.
+
 ## Use With Plash
 
 1. Open Plash.
