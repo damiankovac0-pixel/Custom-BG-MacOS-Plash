@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <title>CustomBGPlash</title>
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="styles.css?v=14" />
   </head>
   <body class="preboot intro-active">
     <main class="wallpaper" aria-label="Personal time aware macOS wallpaper">
       <section class="background-stage" aria-hidden="true">
+        <video class="wallpaper-video" autoplay muted loop playsinline preload="auto">
+          <source src="assets/mahoraga-wheel-of-adaptation.3840x2160.mp4" type="video/mp4" />
+        </video>
         <div class="soft-vignette"></div>
         <div class="future-background"></div>
         <div class="hub-core">
@@ -55,7 +58,7 @@
             <span id="weatherMeta">Waiting for helper</span>
           </span>
         </section>
-        <section class="signal signal-calendar" id="calendarSignal" data-status="syncing" aria-label="Calendar">
+        <button class="signal signal-calendar" id="calendarSignal" data-status="syncing" type="button" aria-label="Show calendar events" aria-expanded="false" aria-controls="calendarPanel">
           <svg class="signal-icon" viewBox="0 0 48 48" role="img" aria-label="Calendar icon">
             <path class="icon-glow" d="M12 8.5h24A5.5 5.5 0 0 1 41.5 14v22A5.5 5.5 0 0 1 36 41.5H12A5.5 5.5 0 0 1 6.5 36V14A5.5 5.5 0 0 1 12 8.5Z" />
             <path d="M12 8.5h24A5.5 5.5 0 0 1 41.5 14v22A5.5 5.5 0 0 1 36 41.5H12A5.5 5.5 0 0 1 6.5 36V14A5.5 5.5 0 0 1 12 8.5Z" />
@@ -66,28 +69,25 @@
             <strong id="calendarValue">Syncing</strong>
             <span id="calendarMeta">Waiting for helper</span>
           </span>
-        </section>
+        </button>
       </aside>
 
-      <section class="dashboard" aria-label="Productivity dashboard">
-        <div class="today-panel">
-          <p class="panel-kicker">Today</p>
-          <h2 id="todayHeadline">Set the pace.</h2>
-          <p class="today-summary" id="todaySummary">No tasks yet. Add one thing worth finishing.</p>
-
-          <form class="todo-form" id="todoForm">
-            <label for="todoInput">Add task</label>
-            <div class="todo-entry">
-              <input id="todoInput" name="todo" type="text" autocomplete="off" placeholder="Add a priority..." />
-              <button type="submit">Add</button>
-            </div>
-          </form>
-
-          <ul class="todo-list" id="todoList" aria-label="Todo list"></ul>
+      <section class="calendar-panel" id="calendarPanel" aria-label="Calendar events" hidden>
+        <div class="calendar-panel-header">
+          <span>Calendar uplink</span>
+          <button id="calendarClose" type="button" aria-label="Close calendar events">Close</button>
         </div>
+        <section>
+          <h2>Today</h2>
+          <ol id="todayEvents" class="event-list"></ol>
+        </section>
+        <section>
+          <h2>This week</h2>
+          <ol id="weekEvents" class="event-list"></ol>
+        </section>
       </section>
     </main>
 
-    <script src="script.js?v=12"></script>
+    <script src="script.js?v=14"></script>
   </body>
 </html>

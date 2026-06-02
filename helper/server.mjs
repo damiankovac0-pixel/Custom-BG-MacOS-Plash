@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,7 @@ const MIME_TYPES = new Map([
   [".png", "image/png"],
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
+  [".mp4", "video/mp4"],
   [".ico", "image/x-icon"]
 ]);
 
@@ -153,8 +154,45 @@ async function serveStatic(pathname, request, response) {
 
   try {
     const type = MIME_TYPES.get(extname(filePath).toLowerCase()) || "application/octet-stream";
+    const fileStats = await stat(filePath);
+    const range = request.headers.range;
+
+    if (range) {
+      const match = range.match(/bytes=(\d*)-(\d*)/);
+      const start = match?.[1] ? Number(match[1]) : 0;
+      const end = match?.[2] ? Number(match[2]) : fileStats.size - 1;
+
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || end >= fileStats.size) {
+        response.writeHead(416, {
+          "Content-Range": `bytes */${fileStats.size}`,
+          ...corsHeaders()
+        });
+        response.end();
+        return;
+      }
+
+      response.writeHead(206, {
+        "Content-Type": type,
+        "Content-Length": String(end - start + 1),
+        "Content-Range": `bytes ${start}-${end}/${fileStats.size}`,
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-store",
+        ...corsHeaders()
+      });
+
+      if (request.method === "HEAD") {
+        response.end();
+        return;
+      }
+
+      createReadStream(filePath, { start, end }).pipe(response);
+      return;
+    }
+
     response.writeHead(200, {
       "Content-Type": type,
+      "Content-Length": String(fileStats.size),
+      "Accept-Ranges": "bytes",
       "Cache-Control": "no-store",
       ...corsHeaders()
     });
@@ -403,14 +441,17 @@ async function syncCalendar(calendarSettings) {
       maxBuffer: 1024 * 1024
     });
     const parsed = JSON.parse(stdout.trim() || "{}");
-    const events = Array.isArray(parsed.events) ? parsed.events : [];
-    const nextEvent = events.find((event) => !event.isAllDay) || events[0] || null;
+    const todayEvents = Array.isArray(parsed.todayEvents) ? parsed.todayEvents : [];
+    const weekEvents = Array.isArray(parsed.weekEvents) ? parsed.weekEvents : [];
+    const nextEvent = todayEvents.find((event) => !event.isAllDay) || todayEvents[0] || weekEvents[0] || null;
 
     return {
       status: "online",
       provider: "macos-calendar",
-      label: events.length === 0 ? "No events today" : nextEvent ? `${formatEventTime(nextEvent.startAt)} ${nextEvent.title}` : `${events.length} events today`,
-      events,
+      label: todayEvents.length === 0 ? "No events today" : nextEvent ? `${formatEventTime(nextEvent.startAt)} ${nextEvent.title}` : `${todayEvents.length} events today`,
+      events: todayEvents,
+      todayEvents,
+      weekEvents,
       updatedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -421,6 +462,8 @@ async function syncCalendar(calendarSettings) {
       label: state.today.calendar?.status === "online" ? `${state.today.calendar.label} (cached)` : "Calendar unavailable",
       error: error.message,
       events: state.today.calendar?.events || [],
+      todayEvents: state.today.calendar?.todayEvents || state.today.calendar?.events || [],
+      weekEvents: state.today.calendar?.weekEvents || [],
       updatedAt: state.today.calendar?.updatedAt || null
     };
   }
@@ -438,8 +481,10 @@ const allowedNames = ${allowedNames};
 const maxEvents = ${maxEvents};
 const start = new Date();
 start.setHours(0, 0, 0, 0);
-const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-const events = [];
+const todayEnd = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+const weekEnd = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+const todayEvents = [];
+const weekEvents = [];
 
 for (const calendar of Calendar.calendars()) {
   const calendarName = calendar.name();
@@ -447,31 +492,38 @@ for (const calendar of Calendar.calendars()) {
 
   for (const event of calendar.events()) {
     const startDate = event.startDate();
-    if (!(startDate instanceof Date) || startDate < start || startDate >= end) continue;
+    if (!(startDate instanceof Date) || startDate < start || startDate >= weekEnd) continue;
 
     const endDate = event.endDate();
-    events.push({
+    const payload = {
       title: event.summary() || "Untitled",
       calendar: calendarName,
       startAt: startDate.toISOString(),
       endAt: endDate instanceof Date ? endDate.toISOString() : null,
       location: event.location() || null,
       isAllDay: Boolean(event.alldayEvent())
-    });
+    };
+
+    weekEvents.push(payload);
+    if (startDate < todayEnd) todayEvents.push(payload);
   }
 }
 
-events.sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt));
-JSON.stringify({ events: events.slice(0, maxEvents) });
+todayEvents.sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt));
+weekEvents.sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt));
+JSON.stringify({
+  todayEvents: todayEvents.slice(0, maxEvents),
+  weekEvents: weekEvents.slice(0, Math.max(maxEvents, 12))
+});
 `;
 }
 
 function buildDailySummary() {
   const openTasks = state.today.todos.filter((todo) => !todo.done);
   const weather = state.today.weather?.status === "online" ? state.today.weather.label : "weather offline";
-  const events = state.today.calendar?.events?.length || 0;
-  const taskText = openTasks.length === 0 ? "no open tasks" : `${openTasks.length} open ${openTasks.length === 1 ? "task" : "tasks"}`;
-  const eventText = events === 0 ? "no calendar events" : `${events} calendar ${events === 1 ? "event" : "events"}`;
+  const events = state.today.calendar?.todayEvents?.length ?? state.today.calendar?.events?.length ?? 0;
+  const taskText = openTasks.length === 0 ? "clear task list" : `${openTasks.length} open ${openTasks.length === 1 ? "task" : "tasks"}`;
+  const eventText = events === 0 ? "no events today" : `${events} calendar ${events === 1 ? "event" : "events"} today`;
 
   return `${taskText}, ${eventText}, ${weather}.`;
 }
