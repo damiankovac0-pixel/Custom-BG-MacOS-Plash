@@ -25,6 +25,10 @@ const todoInput = document.querySelector("#todoInput");
 const todoList = document.querySelector("#todoList");
 const weatherSignal = document.querySelector("#weatherSignal");
 const calendarSignal = document.querySelector("#calendarSignal");
+const weatherValue = document.querySelector("#weatherValue");
+const weatherMeta = document.querySelector("#weatherMeta");
+const calendarValue = document.querySelector("#calendarValue");
+const calendarMeta = document.querySelector("#calendarMeta");
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:4173" : "";
 
 let introTimers = [];
@@ -96,15 +100,28 @@ function renderSignals() {
   const weather = appState?.today?.weather;
   const calendar = appState?.today?.calendar;
 
-  weatherSignal.textContent = weather?.status === "online"
-    ? `Weather ${weather.label}${weather.location ? `, ${weather.location}` : ""}`
-    : weather?.label || "Weather offline";
-  calendarSignal.textContent = calendar?.status === "online"
-    ? `Calendar ${calendar.label}`
-    : calendar?.label || "Calendar unavailable";
-
   weatherSignal.dataset.status = weather?.status || "offline";
   calendarSignal.dataset.status = calendar?.status || "offline";
+
+  if (weather?.status === "online") {
+    weatherValue.textContent = weather.label;
+    weatherMeta.textContent = [weather.location, weather.highC !== null ? `H ${weather.highC}°` : null, weather.lowC !== null ? `L ${weather.lowC}°` : null]
+      .filter(Boolean)
+      .join(" / ");
+  } else {
+    weatherValue.textContent = weather?.label || "Offline";
+    weatherMeta.textContent = appState ? "Weather sync unavailable" : "Connecting to helper";
+  }
+
+  if (calendar?.status === "online") {
+    calendarValue.textContent = calendar.label;
+    calendarMeta.textContent = calendar.events?.length
+      ? `${calendar.events.length} event${calendar.events.length === 1 ? "" : "s"} loaded`
+      : "Schedule clear";
+  } else {
+    calendarValue.textContent = calendar?.label || "Unavailable";
+    calendarMeta.textContent = appState ? "macOS Calendar permission needed" : "Connecting to helper";
+  }
 }
 
 async function addTodo(text) {

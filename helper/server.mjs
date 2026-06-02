@@ -46,6 +46,14 @@ setInterval(() => {
 
 const server = createServer(async (request, response) => {
   try {
+    setCorsHeaders(response);
+
+    if (request.method === "OPTIONS") {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+
     await routeRequest(request, response);
   } catch (error) {
     await logEvent("request_error", { message: error.message, url: request.url });
@@ -147,7 +155,8 @@ async function serveStatic(pathname, request, response) {
     const type = MIME_TYPES.get(extname(filePath).toLowerCase()) || "application/octet-stream";
     response.writeHead(200, {
       "Content-Type": type,
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      ...corsHeaders()
     });
 
     if (request.method === "HEAD") {
@@ -596,9 +605,25 @@ function getLatestWakeAt() {
 function sendJson(response, status, payload) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
+    ...corsHeaders()
   });
   response.end(`${JSON.stringify(payload)}\n`);
+}
+
+function setCorsHeaders(response) {
+  for (const [key, value] of Object.entries(corsHeaders())) {
+    response.setHeader(key, value);
+  }
+}
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400"
+  };
 }
 
 async function readJsonBody(request) {

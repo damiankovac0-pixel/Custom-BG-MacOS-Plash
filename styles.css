@@ -148,16 +148,12 @@ body.intro-leaving .intro {
   position: absolute;
   left: 72px;
   right: 72px;
-  bottom: 58px;
+  bottom: 50px;
   z-index: 2;
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  color: oklch(70% 0.012 255 / 0.32);
-  font-size: clamp(0.66rem, 0.9vw, 0.82rem);
-  font-weight: 650;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  align-items: flex-end;
+  gap: 28px;
   opacity: 0;
   transform: translateY(5px);
   transition:
@@ -170,15 +166,93 @@ body.settled .background-signals {
   transform: translateY(0);
 }
 
-.background-signals span {
-  max-width: min(42vw, 680px);
+.signal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  max-width: min(42vw, 560px);
+  color: oklch(70% 0.012 255 / 0.45);
+}
+
+.signal::before {
+  content: "";
+  position: absolute;
+  inset: -12px -16px;
+  border: 1px solid oklch(78% 0.06 220 / 0.08);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  opacity: 0;
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.signal[data-status="online"]::before {
+  opacity: 1;
+}
+
+.signal-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: oklch(74% 0.04 225 / 0.62);
+  filter: drop-shadow(0 0 14px oklch(78% 0.08 220 / 0.18));
+}
+
+.signal-icon .icon-glow {
+  fill: oklch(78% 0.07 220 / 0.08);
+  stroke: oklch(78% 0.07 220 / 0.16);
+}
+
+.signal-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.signal-label,
+.signal-copy strong,
+.signal-copy span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.background-signals [data-status="online"] {
-  color: oklch(76% 0.024 230 / 0.5);
+.signal-label {
+  color: oklch(68% 0.012 255 / 0.34);
+  font-size: 0.62rem;
+  font-weight: 720;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.signal-copy strong {
+  color: oklch(88% 0.02 230 / 0.72);
+  font-size: clamp(0.78rem, 1.05vw, 1rem);
+  font-weight: 720;
+  letter-spacing: 0.02em;
+}
+
+.signal-copy span:last-child {
+  color: oklch(72% 0.018 230 / 0.38);
+  font-family: "SF Pro Text", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.signal[data-status="online"] .signal-icon {
+  color: oklch(80% 0.075 210 / 0.82);
+  animation: signalBreathe 3400ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.signal[data-status="offline"] .signal-icon,
+.signal[data-status="syncing"] .signal-icon {
+  color: oklch(58% 0.012 255 / 0.36);
 }
 
 body.settled .dashboard {
@@ -418,5 +492,22 @@ body.preboot .background-stage {
   .background-stage {
     transform: none;
     transition-property: opacity;
+  }
+
+  .signal[data-status="online"] .signal-icon {
+    animation: none;
+  }
+}
+
+@keyframes signalBreathe {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
   }
 }
