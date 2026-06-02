@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Orbitron Local";
+  src: url("fonts/Orbitron-wght.ttf") format("truetype");
+  font-weight: 400 900;
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
   --black: oklch(5.5% 0.006 255);
@@ -9,7 +16,7 @@
   --line: oklch(70% 0.014 255 / 0.16);
   --panel-fill: oklch(10.5% 0.012 255 / 0.54);
   --accent: oklch(78% 0.105 205);
-  font-family: Orbitron, "Eurostile", "Bank Gothic", "SF Pro Display", system-ui, sans-serif;
+  font-family: "Orbitron Local", Orbitron, "Eurostile", "Bank Gothic", "SF Pro Display", system-ui, sans-serif;
 }
 
 * {
@@ -125,33 +132,42 @@ body.intro-leaving .intro {
 
 .dashboard {
   position: absolute;
-  top: clamp(92px, 12vh, 148px);
-  right: clamp(28px, 5vw, 76px);
-  bottom: clamp(44px, 6vh, 78px);
-  z-index: 2;
-  width: min(390px, 34vw);
-  min-width: 320px;
+  top: 112px;
+  right: 56px;
+  bottom: 74px;
+  z-index: 4;
+  width: 390px;
   opacity: 0;
+  visibility: hidden;
   transform: translateX(14px);
   transition:
     opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0ms linear 1100ms;
 }
 
 body.settled .dashboard {
   opacity: 1;
+  visibility: visible;
   transform: translateX(0);
+  transition-delay: 0ms;
+}
+
+body.intro-active .dashboard {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .today-panel {
   height: 100%;
-  padding: clamp(18px, 2.2vw, 28px);
-  border: 1px solid var(--line);
+  padding: 26px;
+  border: 1px solid rgba(220, 236, 255, 0.16);
   border-radius: 28px;
   background:
-    linear-gradient(145deg, oklch(17% 0.018 255 / 0.42), transparent 42%),
-    var(--panel-fill);
-  box-shadow: 0 28px 90px oklch(3% 0.006 255 / 0.36);
+    linear-gradient(145deg, rgba(35, 47, 58, 0.52), rgba(7, 8, 10, 0.48) 52%),
+    rgba(8, 10, 13, 0.74);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.36);
 }
 
 .panel-kicker,
@@ -160,7 +176,7 @@ body.settled .dashboard {
   margin: 0;
   color: var(--quiet);
   font-size: 0.7rem;
-  font-weight: 760;
+  font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -320,7 +336,7 @@ body.settled .dashboard {
   font-size: clamp(4rem, 11.5vw, 10.5rem);
   line-height: 0.88;
   letter-spacing: -0.085em;
-  font-weight: 820;
+  font-weight: 900;
 }
 
 .intro-time {
@@ -329,7 +345,7 @@ body.settled .dashboard {
   font-size: clamp(2.2rem, 5vw, 4.8rem);
   line-height: 1;
   letter-spacing: -0.065em;
-  font-weight: 780;
+  font-weight: 800;
 }
 
 .intro-date {
@@ -390,7 +406,6 @@ body.preboot .background-stage {
     top: clamp(84px, 18vh, 132px);
     bottom: clamp(20px, 6vw, 36px);
     width: auto;
-    min-width: 0;
   }
 }
 
