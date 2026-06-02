@@ -1,14 +1,16 @@
 const GREETINGS = [
-  { start: 5, short: "Good Morning", full: "Good Morning Damian" },
-  { start: 12, short: "Good Afternoon", full: "Good Afternoon Damian" },
-  { start: 17, short: "Good Evening", full: "Good Evening Damian" },
-  { start: 22, short: "Good Night", full: "Good Night Damian" }
+  { start: 5, key: "morning", short: "Good Morning", full: "Good Morning Damian" },
+  { start: 12, key: "afternoon", short: "Good Afternoon", full: "Good Afternoon Damian" },
+  { start: 17, key: "evening", short: "Good Evening", full: "Good Evening Damian" },
+  { start: 22, key: "night", short: "Good Night", full: "Good Night Damian" }
 ];
 
 const INTRO_TIMING = {
-  showAfter: 120,
-  holdFor: 2600,
-  fadeFor: 1500
+  bootScanAt: 240,
+  bootLockAt: 1180,
+  showAfter: 1680,
+  holdFor: 2500,
+  fadeFor: 1400
 };
 const INTRO_COOLDOWN = 4 * 60 * 60 * 1000;
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:4173" : "";
@@ -29,13 +31,16 @@ const calendarPanel = document.querySelector("#calendarPanel");
 const calendarClose = document.querySelector("#calendarClose");
 const todayEvents = document.querySelector("#todayEvents");
 const weekEvents = document.querySelector("#weekEvents");
+const bootWeather = document.querySelector("#bootWeather");
+const bootCalendar = document.querySelector("#bootCalendar");
+const bootWake = document.querySelector("#bootWake");
 
 let introTimers = [];
 let lastIntroAt = 0;
 let appState = null;
 let stateRetryTimer = null;
 
-function getGreeting(date) {
+function getPhase(date) {
   const hour = date.getHours() + date.getMinutes() / 60;
   return [...GREETINGS].reverse().find((item) => hour >= item.start) || GREETINGS[GREETINGS.length - 1];
 }
@@ -57,7 +62,7 @@ function updateTime() {
     month: "short",
     day: "numeric"
   }).format(now);
-  const currentGreeting = getGreeting(now);
+  const currentGreeting = getPhase(now);
 
   phaseLabel.textContent = currentGreeting.short;
   greeting.textContent = currentGreeting.full;
@@ -65,6 +70,7 @@ function updateTime() {
   introDate.textContent = longDate;
   ambientTime.textContent = time;
   ambientDate.textContent = shortDate;
+  document.body.dataset.phase = currentGreeting.key;
 }
 
 async function fetchState() {
@@ -114,6 +120,10 @@ function renderSignals() {
     calendarValue.textContent = calendar?.label || "Unavailable";
     calendarMeta.textContent = appState ? "macOS Calendar permission needed" : "Connecting to helper";
   }
+
+  bootWeather.textContent = weather?.status === "online" ? `weather uplink stable / ${weather.label}` : "weather uplink degraded";
+  bootCalendar.textContent = calendar?.status === "online" || hasCalendarData ? "calendar uplink cached / readable" : "calendar uplink awaiting permission";
+  bootWake.textContent = appState?.lastWakeAt ? "wake signal captured / pmset" : "wake signal local clock";
 }
 
 function renderCalendarPanel() {
@@ -191,8 +201,16 @@ function playIntro({ force = false } = {}) {
   clearIntroTimers();
   updateTime();
 
-  document.body.classList.remove("preboot", "intro-visible", "intro-leaving", "settled");
-  document.body.classList.add("intro-active");
+  document.body.classList.remove("preboot", "boot-scan", "boot-lock", "intro-visible", "intro-leaving", "settled");
+  document.body.classList.add("intro-active", "booting");
+
+  queueIntroStep(() => {
+    document.body.classList.add("boot-scan");
+  }, INTRO_TIMING.bootScanAt);
+
+  queueIntroStep(() => {
+    document.body.classList.add("boot-lock");
+  }, INTRO_TIMING.bootLockAt);
 
   queueIntroStep(() => {
     document.body.classList.add("intro-visible");
@@ -204,14 +222,14 @@ function playIntro({ force = false } = {}) {
   }, INTRO_TIMING.showAfter + INTRO_TIMING.holdFor);
 
   queueIntroStep(() => {
-    document.body.classList.remove("intro-active", "intro-leaving");
+    document.body.classList.remove("intro-active", "intro-leaving", "booting", "boot-scan", "boot-lock");
   }, INTRO_TIMING.showAfter + INTRO_TIMING.holdFor + INTRO_TIMING.fadeFor);
 }
 
 function settleWithoutIntro() {
   clearIntroTimers();
   updateTime();
-  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving");
+  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving", "booting", "boot-scan", "boot-lock");
   document.body.classList.add("settled");
 }
 
