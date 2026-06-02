@@ -90,9 +90,10 @@ function scheduleStateRefresh(delay) {
 function renderSignals() {
   const weather = appState?.today?.weather;
   const calendar = appState?.today?.calendar;
+  const hasCalendarData = Boolean(calendar?.todayEvents?.length || calendar?.weekEvents?.length || calendar?.events?.length);
 
   weatherSignal.dataset.status = weather?.status || "offline";
-  calendarSignal.dataset.status = calendar?.status || "offline";
+  calendarSignal.dataset.status = calendar?.status === "online" || hasCalendarData ? "online" : "offline";
 
   if (weather?.status === "online") {
     weatherValue.textContent = weather.label;
@@ -104,8 +105,8 @@ function renderSignals() {
     weatherMeta.textContent = appState ? "Weather sync unavailable" : "Connecting to helper";
   }
 
-  if (calendar?.status === "online") {
-    calendarValue.textContent = calendar.label;
+  if (calendar?.status === "online" || hasCalendarData) {
+    calendarValue.textContent = calendar.label || "Calendar ready";
     calendarMeta.textContent = calendar.todayEvents?.length
       ? `${calendar.todayEvents.length} today / ${calendar.weekEvents?.length || 0} week`
       : `${calendar.weekEvents?.length || 0} this week`;
@@ -224,9 +225,20 @@ function shouldPlayIntroOnLoad() {
 }
 
 function setCalendarPanel(open) {
-  calendarPanel.hidden = !open;
   calendarSignal.setAttribute("aria-expanded", String(open));
-  document.body.classList.toggle("calendar-open", open);
+
+  if (open) {
+    calendarPanel.hidden = false;
+    window.requestAnimationFrame(() => document.body.classList.add("calendar-open"));
+    return;
+  }
+
+  document.body.classList.remove("calendar-open");
+  window.setTimeout(() => {
+    if (calendarSignal.getAttribute("aria-expanded") === "false") {
+      calendarPanel.hidden = true;
+    }
+  }, 360);
 }
 
 document.addEventListener("visibilitychange", () => {
@@ -241,6 +253,12 @@ calendarSignal.addEventListener("click", () => {
 });
 
 calendarClose.addEventListener("click", () => setCalendarPanel(false));
+
+document.addEventListener("click", (event) => {
+  if (calendarPanel.hidden) return;
+  if (calendarPanel.contains(event.target) || calendarSignal.contains(event.target)) return;
+  setCalendarPanel(false);
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setCalendarPanel(false);

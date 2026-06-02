@@ -519,13 +519,11 @@ JSON.stringify({
 }
 
 function buildDailySummary() {
-  const openTasks = state.today.todos.filter((todo) => !todo.done);
   const weather = state.today.weather?.status === "online" ? state.today.weather.label : "weather offline";
   const events = state.today.calendar?.todayEvents?.length ?? state.today.calendar?.events?.length ?? 0;
-  const taskText = openTasks.length === 0 ? "clear task list" : `${openTasks.length} open ${openTasks.length === 1 ? "task" : "tasks"}`;
   const eventText = events === 0 ? "no events today" : `${events} calendar ${events === 1 ? "event" : "events"} today`;
 
-  return `${taskText}, ${eventText}, ${weather}.`;
+  return `${eventText}, ${weather}.`;
 }
 
 function formatEventTime(iso) {
