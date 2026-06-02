@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>CustomBGPlash</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="preboot intro-active">
+    <main class="wallpaper" aria-label="Personal time aware macOS wallpaper">
+      <section class="background-stage" aria-hidden="true">
+        <div class="soft-vignette"></div>
+        <div class="future-background"></div>
+      </section>
+
+      <section class="intro" aria-live="polite" aria-label="Wake greeting">
+        <p class="intro-kicker" id="phaseLabel">Good Morning</p>
+        <h1 id="greeting">Good Morning Damian</h1>
+        <p class="intro-time" id="introTime">00:00</p>
+        <p class="intro-date" id="introDate">Monday, January 1</p>
+      </section>
+
+      <aside class="ambient-clock" aria-label="Current time and date">
+        <span id="ambientTime">00:00</span>
+        <span id="ambientDate">Mon, Jan 1</span>
+      </aside>
+
+      <section class="dashboard" aria-label="Productivity dashboard">
+        <div class="today-panel">
+          <p class="panel-kicker">Today</p>
+          <h2 id="todayHeadline">Set the pace.</h2>
+          <p class="today-summary" id="todaySummary">No tasks yet. Add one thing worth finishing.</p>
+
+          <div class="signal-grid" aria-label="Daily signals">
+            <article>
+              <span>Weather</span>
+              <strong id="weatherSignal">Offline</strong>
+            </article>
+            <article>
+              <span>Calendar</span>
+              <strong id="calendarSignal">Later</strong>
+            </article>
+          </div>
+
+          <form class="todo-form" id="todoForm">
+            <label for="todoInput">Add task</label>
+            <div class="todo-entry">
+              <input id="todoInput" name="todo" type="text" autocomplete="off" placeholder="Add a priority..." />
+              <button type="submit">Add</button>
+            </div>
+          </form>
+
+          <ul class="todo-list" id="todoList" aria-label="Todo list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
