@@ -4,17 +4,43 @@ An offline Plash wallpaper for macOS. It starts with a clean black wake screen, 
 
 See `docs/ARCHITECTURE.md` for the planned local helper architecture that will handle wake events, Obsidian, GitHub, weather, calendar, and durable todo storage properly.
 
-## Use With Plash
+## Install The Local Helper
+
+The proper setup is to run the local helper. It serves the wallpaper, owns `data/state.json`, detects macOS wake events, and stores todos outside the browser.
+
+```sh
+npm run install-helper
+```
+
+Then use this URL in Plash:
+
+```text
+http://127.0.0.1:4173
+```
+
+To uninstall the helper:
+
+```sh
+npm run uninstall-helper
+```
+
+## Fallback Use With Plash
 
 1. Open Plash.
 2. Choose **Add Website...**.
-3. Use this local file URL:
+3. Prefer the helper URL:
+
+```text
+http://127.0.0.1:4173
+```
+
+If you are not running the helper, use this local file URL:
 
 ```text
 file:///Users/damiankovac/Documents/GITHUB/CustomBGPlash/index.html
 ```
 
-If Plash does not accept a `file://` URL, run a tiny local server from this folder instead:
+Or run a temporary server from this folder:
 
 ```sh
 python3 -m http.server 4173
@@ -32,17 +58,23 @@ This still works offline because the files are served from your Mac.
 
 - First paint is black to avoid a visible flash.
 - JavaScript fills in the correct greeting, time, and date before revealing text.
-- The intro plays on page load, when the page becomes visible again, and when the window regains focus.
+- With the helper, the intro plays from helper state instead of normal desktop focus changes.
 - The clock updates once per minute.
 - The dashboard shows a Today panel, weather/calendar placeholders, and an editable todo list.
-- Todos are stored locally in the browser with `localStorage`, so they work offline.
-- The font stack uses Orbitron if it is installed on the Mac, with local system fallbacks otherwise.
+- With the helper, todos are stored in `data/state.json`. Without it, the page falls back to `localStorage`.
+- Orbitron is bundled locally in `fonts/`, so it works offline.
 
 ## Editing Todos
 
 Use Plash browsing mode to click into the todo input, add tasks, complete tasks, or remove them.
 
-The data is stored under this local key:
+With the helper running, data is stored here:
+
+```text
+data/state.json
+```
+
+Without the helper, the fallback data is stored under this local browser key:
 
 ```text
 customBGPlash.todos

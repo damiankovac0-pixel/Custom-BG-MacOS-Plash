@@ -1,0 +1,12 @@
+{
+  "name": "custom-bg-plash",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "helper": "node helper/server.mjs",
+    "install-helper": "node scripts/install-launch-agent.mjs",
+    "uninstall-helper": "node scripts/uninstall-launch-agent.mjs",
+    "check": "node --check script.js && node --check helper/server.mjs && node --check scripts/install-launch-agent.mjs && node --check scripts/uninstall-launch-agent.mjs"
+  }
+}

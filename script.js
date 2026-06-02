@@ -26,7 +26,8 @@ const todoList = document.querySelector("#todoList");
 
 let introTimers = [];
 let lastIntroAt = 0;
-let todos = loadTodos();
+let appState = null;
+let todos = [];
 
 function getGreeting(date) {
   const hour = date.getHours() + date.getMinutes() / 60;
@@ -60,7 +61,7 @@ function updateTime() {
   ambientDate.textContent = shortDate;
 }
 
-function loadTodos() {
+function loadFallbackTodos() {
   try {
     const saved = JSON.parse(localStorage.getItem("customBGPlash.todos") || "[]");
     return Array.isArray(saved) ? saved : [];
@@ -69,8 +70,83 @@ function loadTodos() {
   }
 }
 
-function saveTodos() {
+function saveFallbackTodos() {
   localStorage.setItem("customBGPlash.todos", JSON.stringify(todos));
+}
+
+async function fetchState() {
+  try {
+    const response = await fetch("/api/state", { cache: "no-store" });
+    if (!response.ok) throw new Error(`State request failed: ${response.status}`);
+    appState = await response.json();
+    todos = Array.isArray(appState.today?.todos) ? appState.today.todos : [];
+  } catch {
+    appState = null;
+    todos = loadFallbackTodos();
+  }
+
+  renderTodos();
+}
+
+async function addTodo(text) {
+  if (!appState) {
+    todos.unshift({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      text,
+      done: false
+    });
+    saveFallbackTodos();
+    renderTodos();
+    return;
+  }
+
+  const response = await fetch("/api/todos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+
+  if (!response.ok) throw new Error(`Todo add failed: ${response.status}`);
+  appState = await response.json();
+  todos = appState.today.todos;
+  renderTodos();
+}
+
+async function updateTodo(id, patch) {
+  if (!appState) {
+    const todo = todos.find((item) => item.id === id);
+    if (todo) Object.assign(todo, patch);
+    saveFallbackTodos();
+    renderTodos();
+    return;
+  }
+
+  const response = await fetch(`/api/todos/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch)
+  });
+
+  if (!response.ok) throw new Error(`Todo update failed: ${response.status}`);
+  appState = await response.json();
+  todos = appState.today.todos;
+  renderTodos();
+}
+
+async function removeTodo(id) {
+  if (!appState) {
+    todos = todos.filter((todo) => todo.id !== id);
+    saveFallbackTodos();
+    renderTodos();
+    return;
+  }
+
+  const response = await fetch(`/api/todos/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+  if (!response.ok) throw new Error(`Todo remove failed: ${response.status}`);
+  appState = await response.json();
+  todos = appState.today.todos;
+  renderTodos();
 }
 
 function updateTodaySummary() {
@@ -104,16 +180,12 @@ function renderTodos() {
     remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove ${todo.text}`);
 
-    checkbox.addEventListener("change", () => {
-      todo.done = checkbox.checked;
-      saveTodos();
-      renderTodos();
+    checkbox.addEventListener("change", async () => {
+      await updateTodo(todo.id, { done: checkbox.checked });
     });
 
-    remove.addEventListener("click", () => {
-      todos = todos.filter((itemTodo) => itemTodo.id !== todo.id);
-      saveTodos();
-      renderTodos();
+    remove.addEventListener("click", async () => {
+      await removeTodo(todo.id);
     });
 
     item.append(checkbox, label, remove);
@@ -150,6 +222,9 @@ function playIntro({ force = false } = {}) {
 
   lastIntroAt = now;
   localStorage.setItem("customBGPlash.lastIntroAt", String(now));
+  if (appState?.lastWakeAt) {
+    localStorage.setItem("customBGPlash.lastIntroWakeAt", appState.lastWakeAt);
+  }
   clearIntroTimers();
   updateTime();
 
@@ -178,6 +253,10 @@ function settleWithoutIntro() {
 }
 
 function shouldPlayIntroOnLoad() {
+  if (appState?.lastWakeAt) {
+    return localStorage.getItem("customBGPlash.lastIntroWakeAt") !== appState.lastWakeAt;
+  }
+
   const saved = Number(localStorage.getItem("customBGPlash.lastIntroAt") || 0);
 
   return !saved || Date.now() - saved > INTRO_COOLDOWN;
@@ -187,26 +266,21 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) updateTime();
 });
 
-todoForm.addEventListener("submit", (event) => {
+todoForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const text = todoInput.value.trim();
   if (!text) return;
 
-  todos.unshift({
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-    text,
-    done: false
-  });
   todoInput.value = "";
-  saveTodos();
-  renderTodos();
+  await addTodo(text);
 });
 
 updateTime();
-renderTodos();
 scheduleMinuteTick();
-window.requestAnimationFrame(() => {
+window.requestAnimationFrame(async () => {
+  await fetchState();
+
   if (shouldPlayIntroOnLoad()) {
     playIntro({ force: true });
   } else {

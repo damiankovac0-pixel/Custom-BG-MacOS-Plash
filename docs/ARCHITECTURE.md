@@ -60,15 +60,24 @@ Planned state shape:
 }
 ```
 
+## Implemented Foundation
+
+- `helper/server.mjs` serves the wallpaper at `http://127.0.0.1:4173`.
+- `helper/server.mjs` exposes `/api/state` and `/api/todos`.
+- `helper/server.mjs` writes `data/state.json` atomically.
+- `helper/server.mjs` appends operational events to `data/events.jsonl`.
+- `helper/server.mjs` polls `pmset -g log` for real macOS wake events.
+- `scripts/install-launch-agent.mjs` installs the helper as a LaunchAgent.
+- `scripts/uninstall-launch-agent.mjs` removes the LaunchAgent.
+
 ## Integration Plan
 
-1. Build local helper and LaunchAgent.
-2. Move todos from `localStorage` to helper-managed JSON.
-3. Add wake detection and intro replay based on `lastWakeAt`.
-4. Add Obsidian vault reader for daily notes and tasks.
-5. Add GitHub sync with offline cache.
-6. Add weather sync with offline cache.
-7. Add Calendar sync from macOS Calendar or exported calendars.
+1. Add Obsidian vault reader for daily notes and tasks.
+2. Add GitHub sync with offline cache.
+3. Add weather sync with offline cache.
+4. Add Calendar sync from macOS Calendar or exported calendars.
+5. Add settings file for integration paths and tokens.
+6. Add a small diagnostics page for helper health.
 
 ## Principle
 
