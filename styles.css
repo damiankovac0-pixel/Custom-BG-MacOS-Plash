@@ -13,9 +13,8 @@
   --muted: oklch(72% 0.014 255 / 0.72);
   --quiet: oklch(68% 0.012 255 / 0.36);
   --shadow: oklch(3% 0.006 255 / 0.76);
-  --line: oklch(70% 0.014 255 / 0.16);
-  --panel-fill: oklch(10.5% 0.012 255 / 0.54);
-  --accent: oklch(78% 0.105 205);
+  --line: rgba(222, 231, 245, 0.14);
+  --accent: oklch(80% 0.045 230);
   font-family: "Orbitron Local", Orbitron, "Eurostile", "Bank Gothic", "SF Pro Display", system-ui, sans-serif;
 }
 
@@ -74,13 +73,13 @@ body.settled .background-stage {
 
 .future-background {
   background:
-    radial-gradient(circle at 18% 26%, oklch(34% 0.055 225 / 0.2), transparent 28vw),
-    radial-gradient(circle at 88% 74%, oklch(30% 0.05 275 / 0.22), transparent 30vw),
-    linear-gradient(90deg, oklch(92% 0.006 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, oklch(92% 0.006 255 / 0.03) 1px, transparent 1px),
-    radial-gradient(circle at 50% 112%, oklch(20% 0.018 255 / 0.62), transparent 36vw),
+    radial-gradient(circle at 22% 32%, rgba(30, 39, 48, 0.28), transparent 26vw),
+    radial-gradient(circle at 76% 74%, rgba(24, 29, 37, 0.3), transparent 30vw),
+    linear-gradient(90deg, rgba(230, 236, 246, 0.018) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(230, 236, 246, 0.016) 1px, transparent 1px),
+    radial-gradient(circle at 50% 112%, rgba(28, 32, 38, 0.52), transparent 36vw),
     linear-gradient(180deg, var(--black), var(--panel));
-  background-size: auto, auto, 84px 84px, 84px 84px, auto, auto;
+  background-size: auto, auto, 132px 132px, 132px 132px, auto, auto;
 }
 
 .soft-vignette {
@@ -132,14 +131,13 @@ body.intro-leaving .intro {
 
 .dashboard {
   position: absolute;
-  top: 112px;
-  right: 56px;
-  bottom: 74px;
+  left: 72px;
+  top: 132px;
   z-index: 4;
-  width: 390px;
+  width: 460px;
   opacity: 0;
   visibility: hidden;
-  transform: translateX(14px);
+  transform: translateY(8px);
   transition:
     opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 1100ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -160,14 +158,11 @@ body.intro-active .dashboard {
 }
 
 .today-panel {
-  height: 100%;
-  padding: 26px;
-  border: 1px solid rgba(220, 236, 255, 0.16);
-  border-radius: 28px;
-  background:
-    linear-gradient(145deg, rgba(35, 47, 58, 0.52), rgba(7, 8, 10, 0.48) 52%),
-    rgba(8, 10, 13, 0.74);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.36);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .panel-kicker,
@@ -175,18 +170,18 @@ body.intro-active .dashboard {
 .signal-grid span {
   margin: 0;
   color: var(--quiet);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
 }
 
 .today-panel h2 {
-  margin: 0.5rem 0 0.6rem;
+  margin: 0.45rem 0 0.5rem;
   color: var(--ink);
-  font-size: clamp(1.65rem, 2.6vw, 2.45rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
 }
 
 .today-summary {
@@ -194,31 +189,30 @@ body.intro-active .dashboard {
   margin: 0;
   color: var(--muted);
   font-family: "SF Pro Text", system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.45;
 }
 
 .signal-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 1.4rem 0;
+  display: flex;
+  gap: 12px;
+  margin: 1.55rem 0 1.2rem;
 }
 
 .signal-grid article {
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: oklch(7% 0.008 255 / 0.38);
+  min-width: 132px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .signal-grid strong {
   display: block;
   margin-top: 0.42rem;
   color: var(--accent);
-  font-size: 1rem;
-  letter-spacing: -0.02em;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
 }
 
 .offline-signal {
@@ -241,7 +235,7 @@ body.intro-active .dashboard {
 }
 
 .todo-form {
-  margin-top: 1.2rem;
+  margin-top: 1.4rem;
 }
 
 .todo-entry {
@@ -252,18 +246,19 @@ body.intro-active .dashboard {
 
 .todo-entry input,
 .todo-entry button {
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  height: 38px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   font: inherit;
 }
 
 .todo-entry input {
   min-width: 0;
   flex: 1;
-  padding: 0 15px;
+  padding: 0;
   color: var(--ink);
-  background: oklch(5.8% 0.006 255 / 0.82);
+  background: transparent;
   outline: none;
 }
 
@@ -272,21 +267,21 @@ body.intro-active .dashboard {
 }
 
 .todo-entry input:focus {
-  border-color: oklch(78% 0.105 205 / 0.62);
+  border-color: rgba(220, 231, 245, 0.42);
 }
 
 .todo-entry button {
-  padding: 0 16px;
-  color: oklch(10% 0.012 255);
-  background: var(--accent);
+  padding: 0 0 0 12px;
+  color: var(--accent);
+  background: transparent;
   cursor: pointer;
 }
 
 .todo-list {
   display: grid;
   gap: 8px;
-  max-height: calc(100% - 260px);
-  margin: 1rem 0 0;
+  max-height: 280px;
+  margin: 1.1rem 0 0;
   padding: 0;
   overflow: auto;
   list-style: none;
@@ -298,11 +293,12 @@ body.intro-active .dashboard {
   align-items: center;
   gap: 10px;
   min-height: 42px;
-  padding: 8px 10px;
-  border: 1px solid oklch(70% 0.014 255 / 0.1);
-  border-radius: 16px;
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(220, 231, 245, 0.08);
+  border-radius: 0;
   color: var(--muted);
-  background: oklch(6.5% 0.008 255 / 0.46);
+  background: transparent;
   font-family: "SF Pro Text", system-ui, sans-serif;
   font-size: 0.92rem;
 }
@@ -404,7 +400,6 @@ body.preboot .background-stage {
     left: clamp(20px, 6vw, 36px);
     right: clamp(20px, 6vw, 36px);
     top: clamp(84px, 18vh, 132px);
-    bottom: clamp(20px, 6vw, 36px);
     width: auto;
   }
 }

@@ -10,6 +10,7 @@ const INTRO_TIMING = {
   holdFor: 2600,
   fadeFor: 1500
 };
+const INTRO_COOLDOWN = 4 * 60 * 60 * 1000;
 
 const greeting = document.querySelector("#greeting");
 const phaseLabel = document.querySelector("#phaseLabel");
@@ -148,6 +149,7 @@ function playIntro({ force = false } = {}) {
   if (!force && now - lastIntroAt < 8000) return;
 
   lastIntroAt = now;
+  localStorage.setItem("customBGPlash.lastIntroAt", String(now));
   clearIntroTimers();
   updateTime();
 
@@ -168,8 +170,21 @@ function playIntro({ force = false } = {}) {
   }, INTRO_TIMING.showAfter + INTRO_TIMING.holdFor + INTRO_TIMING.fadeFor);
 }
 
+function settleWithoutIntro() {
+  clearIntroTimers();
+  updateTime();
+  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving");
+  document.body.classList.add("settled");
+}
+
+function shouldPlayIntroOnLoad() {
+  const saved = Number(localStorage.getItem("customBGPlash.lastIntroAt") || 0);
+
+  return !saved || Date.now() - saved > INTRO_COOLDOWN;
+}
+
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) playIntro();
+  if (!document.hidden) updateTime();
 });
 
 todoForm.addEventListener("submit", (event) => {
@@ -191,6 +206,10 @@ todoForm.addEventListener("submit", (event) => {
 updateTime();
 renderTodos();
 scheduleMinuteTick();
-window.addEventListener("focus", () => playIntro());
-window.addEventListener("pageshow", () => playIntro());
-window.requestAnimationFrame(() => playIntro({ force: true }));
+window.requestAnimationFrame(() => {
+  if (shouldPlayIntroOnLoad()) {
+    playIntro({ force: true });
+  } else {
+    settleWithoutIntro();
+  }
+});
