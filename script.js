@@ -23,6 +23,8 @@ const todaySummary = document.querySelector("#todaySummary");
 const todoForm = document.querySelector("#todoForm");
 const todoInput = document.querySelector("#todoInput");
 const todoList = document.querySelector("#todoList");
+const weatherSignal = document.querySelector("#weatherSignal");
+const calendarSignal = document.querySelector("#calendarSignal");
 
 let introTimers = [];
 let lastIntroAt = 0;
@@ -85,7 +87,23 @@ async function fetchState() {
     todos = loadFallbackTodos();
   }
 
+  renderSignals();
   renderTodos();
+}
+
+function renderSignals() {
+  const weather = appState?.today?.weather;
+  const calendar = appState?.today?.calendar;
+
+  weatherSignal.textContent = weather?.status === "online"
+    ? `Weather ${weather.label}${weather.location ? `, ${weather.location}` : ""}`
+    : weather?.label || "Weather offline";
+  calendarSignal.textContent = calendar?.status === "online"
+    ? `Calendar ${calendar.label}`
+    : calendar?.label || "Calendar unavailable";
+
+  weatherSignal.dataset.status = weather?.status || "offline";
+  calendarSignal.dataset.status = calendar?.status || "offline";
 }
 
 async function addTodo(text) {
@@ -152,14 +170,22 @@ async function removeTodo(id) {
 function updateTodaySummary() {
   const openTasks = todos.filter((todo) => !todo.done);
 
+  if (appState?.today?.summary) {
+    todaySummary.textContent = appState.today.summary;
+  }
+
   if (openTasks.length === 0) {
     todayHeadline.textContent = "Clear runway.";
-    todaySummary.textContent = "No open tasks. Add one thing worth finishing.";
+    if (!appState?.today?.summary) {
+      todaySummary.textContent = "No open tasks. Add one thing worth finishing.";
+    }
     return;
   }
 
   todayHeadline.textContent = openTasks.length === 1 ? "One target." : `${openTasks.length} targets.`;
-  todaySummary.textContent = `Top priority: ${openTasks[0].text}`;
+  if (!appState?.today?.summary) {
+    todaySummary.textContent = `Top priority: ${openTasks[0].text}`;
+  }
 }
 
 function renderTodos() {

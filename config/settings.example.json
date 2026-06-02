@@ -1,0 +1,21 @@
+{
+  "weather": {
+    "enabled": true,
+    "provider": "open-meteo",
+    "location": {
+      "mode": "autoIp",
+      "name": null,
+      "latitude": null,
+      "longitude": null,
+      "timezone": "auto"
+    },
+    "refreshMinutes": 30
+  },
+  "calendar": {
+    "enabled": true,
+    "refreshMinutes": 5,
+    "maxEvents": 4,
+    "includeAllCalendars": true,
+    "calendarNames": []
+  }
+}

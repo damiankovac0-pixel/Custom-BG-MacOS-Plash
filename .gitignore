@@ -1,3 +1,4 @@
 data/*.json
 data/*.jsonl
 logs/
+config/settings.json

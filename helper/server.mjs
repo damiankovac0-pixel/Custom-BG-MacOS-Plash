@@ -7,10 +7,15 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const DATA_DIR = join(ROOT, "data");
+const CONFIG_DIR = join(ROOT, "config");
 const STATE_FILE = join(DATA_DIR, "state.json");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
+const SETTINGS_FILE = join(CONFIG_DIR, "settings.json");
+const SETTINGS_EXAMPLE_FILE = join(CONFIG_DIR, "settings.example.json");
 const PORT = Number(process.env.CUSTOMBGPLASH_PORT || 4173);
 const POLL_INTERVAL_MS = 30_000;
+const DEFAULT_WEATHER_REFRESH_MS = 30 * 60 * 1000;
+const DEFAULT_CALENDAR_REFRESH_MS = 5 * 60 * 1000;
 
 const MIME_TYPES = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -25,13 +30,18 @@ const MIME_TYPES = new Map([
   [".ico", "image/x-icon"]
 ]);
 
+let settings = await loadSettings();
 let state = await loadState();
+let lastWeatherSyncAt = 0;
+let lastCalendarSyncAt = 0;
 
 await mkdir(DATA_DIR, { recursive: true });
 await saveState("helper_start");
 await detectWake();
+await syncIntegrations({ force: true });
 setInterval(() => {
   detectWake().catch((error) => logEvent("wake_detect_error", { message: error.message }));
+  syncIntegrations().catch((error) => logEvent("integration_sync_error", { message: error.message }));
 }, POLL_INTERVAL_MS);
 
 const server = createServer(async (request, response) => {
@@ -51,6 +61,12 @@ async function routeRequest(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || `127.0.0.1:${PORT}`}`);
 
   if (request.method === "GET" && url.pathname === "/api/state") {
+    sendJson(response, 200, state);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/sync") {
+    await syncIntegrations({ force: true });
     sendJson(response, 200, state);
     return;
   }
@@ -156,6 +172,50 @@ async function loadState() {
   }
 }
 
+async function loadSettings() {
+  await mkdir(CONFIG_DIR, { recursive: true });
+
+  try {
+    return normalizeSettings(JSON.parse(await readFile(SETTINGS_FILE, "utf8")));
+  } catch {
+    try {
+      return normalizeSettings(JSON.parse(await readFile(SETTINGS_EXAMPLE_FILE, "utf8")));
+    } catch {
+      return normalizeSettings({});
+    }
+  }
+}
+
+function normalizeSettings(input) {
+  return {
+    weather: {
+      enabled: input.weather?.enabled !== false,
+      provider: input.weather?.provider || "open-meteo",
+      refreshMinutes: Number(input.weather?.refreshMinutes || 30),
+      location: {
+        mode: input.weather?.location?.mode || "autoIp",
+        name: input.weather?.location?.name || null,
+        latitude: finiteOrNull(input.weather?.location?.latitude),
+        longitude: finiteOrNull(input.weather?.location?.longitude),
+        timezone: input.weather?.location?.timezone || "auto"
+      }
+    },
+    calendar: {
+      enabled: input.calendar?.enabled !== false,
+      refreshMinutes: Number(input.calendar?.refreshMinutes || 5),
+      maxEvents: Number(input.calendar?.maxEvents || 4),
+      includeAllCalendars: input.calendar?.includeAllCalendars !== false,
+      calendarNames: Array.isArray(input.calendar?.calendarNames) ? input.calendar.calendarNames : []
+    }
+  };
+}
+
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function normalizeState(input) {
   const now = new Date().toISOString();
 
@@ -172,8 +232,8 @@ function normalizeState(input) {
     wakeSource: input.wakeSource || "helper_start",
     today: {
       summary: input.today?.summary || "No tasks yet. Add one thing worth finishing.",
-      weather: input.today?.weather || { status: "offline", label: "Offline" },
-      calendar: input.today?.calendar || { status: "offline", label: "Local soon", events: [] },
+      weather: input.today?.weather || { status: "unknown", label: "Syncing weather" },
+      calendar: input.today?.calendar || { status: "unknown", label: "Syncing calendar", events: [] },
       todos: Array.isArray(input.today?.todos) ? input.today.todos : []
     },
     integrations: {
@@ -181,6 +241,295 @@ function normalizeState(input) {
       github: input.integrations?.github || { status: "not_configured" }
     }
   };
+}
+
+async function syncIntegrations({ force = false } = {}) {
+  settings = await loadSettings();
+  const now = Date.now();
+  const weatherInterval = Math.max(1, settings.weather.refreshMinutes) * 60 * 1000 || DEFAULT_WEATHER_REFRESH_MS;
+  const calendarInterval = Math.max(1, settings.calendar.refreshMinutes) * 60 * 1000 || DEFAULT_CALENDAR_REFRESH_MS;
+  let changed = false;
+
+  if (settings.weather.enabled && (force || now - lastWeatherSyncAt >= weatherInterval)) {
+    state.today.weather = await syncWeather(settings.weather);
+    lastWeatherSyncAt = now;
+    changed = true;
+  }
+
+  if (settings.calendar.enabled && (force || now - lastCalendarSyncAt >= calendarInterval)) {
+    state.today.calendar = await syncCalendar(settings.calendar);
+    lastCalendarSyncAt = now;
+    changed = true;
+  }
+
+  if (changed) {
+    state.today.summary = buildDailySummary();
+    await saveState("integration_sync", {
+      weather: state.today.weather.status,
+      calendar: state.today.calendar.status
+    });
+  }
+}
+
+async function syncWeather(weatherSettings) {
+  try {
+    const location = await resolveWeatherLocation(weatherSettings.location);
+    const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+    forecastUrl.searchParams.set("latitude", String(location.latitude));
+    forecastUrl.searchParams.set("longitude", String(location.longitude));
+    forecastUrl.searchParams.set("current", "temperature_2m,apparent_temperature,weather_code,precipitation,wind_speed_10m");
+    forecastUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+    forecastUrl.searchParams.set("timezone", weatherSettings.location.timezone || "auto");
+
+    const data = await fetchJson(forecastUrl, 12_000);
+    const current = data.current || {};
+    const daily = data.daily || {};
+    const condition = weatherCodeToText(current.weather_code ?? daily.weather_code?.[0]);
+    const temp = Math.round(current.temperature_2m);
+    const feels = Math.round(current.apparent_temperature);
+    const high = Math.round(daily.temperature_2m_max?.[0]);
+    const low = Math.round(daily.temperature_2m_min?.[0]);
+    const rain = Math.round(daily.precipitation_probability_max?.[0] ?? current.precipitation ?? 0);
+
+    return {
+      status: "online",
+      provider: "open-meteo",
+      label: `${temp}°C, ${condition}`,
+      condition,
+      temperatureC: temp,
+      apparentTemperatureC: feels,
+      highC: Number.isFinite(high) ? high : null,
+      lowC: Number.isFinite(low) ? low : null,
+      precipitationProbability: Number.isFinite(rain) ? rain : null,
+      windKph: finiteOrNull(current.wind_speed_10m),
+      location: location.label,
+      updatedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    await logEvent("weather_sync_error", { message: error.message });
+    return {
+      ...(state.today.weather || {}),
+      status: "offline",
+      label: state.today.weather?.label && state.today.weather.status === "online" ? `${state.today.weather.label} (cached)` : "Weather offline",
+      error: error.message,
+      updatedAt: state.today.weather?.updatedAt || null
+    };
+  }
+}
+
+async function resolveWeatherLocation(locationSettings) {
+  if (Number.isFinite(locationSettings.latitude) && Number.isFinite(locationSettings.longitude)) {
+    return {
+      latitude: locationSettings.latitude,
+      longitude: locationSettings.longitude,
+      label: locationSettings.name || `${locationSettings.latitude}, ${locationSettings.longitude}`
+    };
+  }
+
+  if (locationSettings.name) {
+    const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+    url.searchParams.set("name", locationSettings.name);
+    url.searchParams.set("count", "1");
+    url.searchParams.set("language", "en");
+    url.searchParams.set("format", "json");
+    const data = await fetchJson(url, 10_000);
+    const match = data.results?.[0];
+    if (!match) throw new Error(`No weather location found for ${locationSettings.name}`);
+
+    return {
+      latitude: match.latitude,
+      longitude: match.longitude,
+      label: [match.name, match.country_code].filter(Boolean).join(", ")
+    };
+  }
+
+  const providers = [resolveIpWhoIsLocation, resolveIpApiLocation];
+  const errors = [];
+
+  for (const provider of providers) {
+    try {
+      const location = await provider();
+      if (isValidCoordinate(location.latitude, location.longitude)) return location;
+      errors.push(`${provider.name} returned invalid coordinates`);
+    } catch (error) {
+      errors.push(`${provider.name}: ${error.message}`);
+    }
+  }
+
+  throw new Error(`Auto location failed: ${errors.join("; ")}`);
+}
+
+async function resolveIpWhoIsLocation() {
+  const data = await fetchJson("https://ipwho.is/", 10_000);
+  if (data.success === false) throw new Error(data.message || "ipwho.is failed");
+
+  return {
+    latitude: Number(data.latitude),
+    longitude: Number(data.longitude),
+    label: [data.city, data.country_code].filter(Boolean).join(", ") || "Current location"
+  };
+}
+
+async function resolveIpApiLocation() {
+  const data = await fetchJson("https://ipapi.co/json/", 10_000);
+
+  return {
+    latitude: Number(data.latitude),
+    longitude: Number(data.longitude),
+    label: [data.city, data.country_code].filter(Boolean).join(", ") || "Current location"
+  };
+}
+
+function isValidCoordinate(latitude, longitude) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return false;
+  return !(Math.abs(latitude) < 0.0001 && Math.abs(longitude) < 0.0001);
+}
+
+async function syncCalendar(calendarSettings) {
+  try {
+    const script = buildCalendarScript(calendarSettings);
+    const stdout = await execFileText("/usr/bin/osascript", ["-l", "JavaScript", "-e", script], {
+      timeout: 20_000,
+      maxBuffer: 1024 * 1024
+    });
+    const parsed = JSON.parse(stdout.trim() || "{}");
+    const events = Array.isArray(parsed.events) ? parsed.events : [];
+    const nextEvent = events.find((event) => !event.isAllDay) || events[0] || null;
+
+    return {
+      status: "online",
+      provider: "macos-calendar",
+      label: events.length === 0 ? "No events today" : nextEvent ? `${formatEventTime(nextEvent.startAt)} ${nextEvent.title}` : `${events.length} events today`,
+      events,
+      updatedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    await logEvent("calendar_sync_error", { message: error.message });
+    return {
+      ...(state.today.calendar || {}),
+      status: "offline",
+      label: state.today.calendar?.status === "online" ? `${state.today.calendar.label} (cached)` : "Calendar unavailable",
+      error: error.message,
+      events: state.today.calendar?.events || [],
+      updatedAt: state.today.calendar?.updatedAt || null
+    };
+  }
+}
+
+function buildCalendarScript(calendarSettings) {
+  const allowedNames = JSON.stringify(calendarSettings.calendarNames || []);
+  const includeAll = calendarSettings.includeAllCalendars ? "true" : "false";
+  const maxEvents = Number(calendarSettings.maxEvents || 4);
+
+  return `
+const Calendar = Application("Calendar");
+const includeAll = ${includeAll};
+const allowedNames = ${allowedNames};
+const maxEvents = ${maxEvents};
+const start = new Date();
+start.setHours(0, 0, 0, 0);
+const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+const events = [];
+
+for (const calendar of Calendar.calendars()) {
+  const calendarName = calendar.name();
+  if (!includeAll && !allowedNames.includes(calendarName)) continue;
+
+  for (const event of calendar.events()) {
+    const startDate = event.startDate();
+    if (!(startDate instanceof Date) || startDate < start || startDate >= end) continue;
+
+    const endDate = event.endDate();
+    events.push({
+      title: event.summary() || "Untitled",
+      calendar: calendarName,
+      startAt: startDate.toISOString(),
+      endAt: endDate instanceof Date ? endDate.toISOString() : null,
+      location: event.location() || null,
+      isAllDay: Boolean(event.alldayEvent())
+    });
+  }
+}
+
+events.sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt));
+JSON.stringify({ events: events.slice(0, maxEvents) });
+`;
+}
+
+function buildDailySummary() {
+  const openTasks = state.today.todos.filter((todo) => !todo.done);
+  const weather = state.today.weather?.status === "online" ? state.today.weather.label : "weather offline";
+  const events = state.today.calendar?.events?.length || 0;
+  const taskText = openTasks.length === 0 ? "no open tasks" : `${openTasks.length} open ${openTasks.length === 1 ? "task" : "tasks"}`;
+  const eventText = events === 0 ? "no calendar events" : `${events} calendar ${events === 1 ? "event" : "events"}`;
+
+  return `${taskText}, ${eventText}, ${weather}.`;
+}
+
+function formatEventTime(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+}
+
+function weatherCodeToText(code) {
+  const table = new Map([
+    [0, "clear"],
+    [1, "mostly clear"],
+    [2, "partly cloudy"],
+    [3, "cloudy"],
+    [45, "fog"],
+    [48, "fog"],
+    [51, "light drizzle"],
+    [53, "drizzle"],
+    [55, "heavy drizzle"],
+    [61, "light rain"],
+    [63, "rain"],
+    [65, "heavy rain"],
+    [71, "light snow"],
+    [73, "snow"],
+    [75, "heavy snow"],
+    [80, "rain showers"],
+    [81, "rain showers"],
+    [82, "heavy showers"],
+    [95, "thunderstorm"],
+    [96, "thunderstorm"],
+    [99, "thunderstorm"]
+  ]);
+
+  return table.get(Number(code)) || "unknown";
+}
+
+async function fetchJson(url, timeout) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "CustomBGPlash/0.1" }
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function execFileText(command, args, options) {
+  return new Promise((resolvePromise, reject) => {
+    execFile(command, args, options, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr.trim() || error.message));
+        return;
+      }
+
+      resolvePromise(stdout);
+    });
+  });
 }
 
 async function saveState(eventType, details = {}) {

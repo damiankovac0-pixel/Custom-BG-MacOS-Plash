@@ -63,6 +63,57 @@ This still works offline because the files are served from your Mac.
 - The dashboard shows a Today panel, weather/calendar placeholders, and an editable todo list.
 - With the helper, todos are stored in `data/state.json`. Without it, the page falls back to `localStorage`.
 - Orbitron is bundled locally in `fonts/`, so it works offline.
+- Weather sync uses internet access with Open-Meteo and automatic IP-based location unless configured otherwise.
+- Calendar sync reads macOS Calendar locally through the helper. macOS may ask for permission the first time.
+
+## Configure Weather And Calendar
+
+The helper uses `config/settings.example.json` by default. To customize it, create `config/settings.json`.
+
+Use automatic IP-based weather location:
+
+```json
+{
+  "weather": {
+    "enabled": true,
+    "location": { "mode": "autoIp" }
+  }
+}
+```
+
+Or pin a location manually:
+
+```json
+{
+  "weather": {
+    "enabled": true,
+    "location": {
+      "name": "Bratislava",
+      "latitude": 48.1486,
+      "longitude": 17.1077,
+      "timezone": "auto"
+    }
+  }
+}
+```
+
+Calendar settings can limit which calendars are read:
+
+```json
+{
+  "calendar": {
+    "enabled": true,
+    "includeAllCalendars": false,
+    "calendarNames": ["Home", "Work"]
+  }
+}
+```
+
+After changing settings, restart the helper:
+
+```sh
+npm run install-helper
+```
 
 ## Editing Todos
 

@@ -69,15 +69,29 @@ Planned state shape:
 - `helper/server.mjs` polls `pmset -g log` for real macOS wake events.
 - `scripts/install-launch-agent.mjs` installs the helper as a LaunchAgent.
 - `scripts/uninstall-launch-agent.mjs` removes the LaunchAgent.
+- Weather sync uses Open-Meteo with IP geolocation or configured coordinates.
+- Calendar sync uses macOS Calendar through `osascript`.
+- Weather and Calendar render as ambient background signals, not dashboard cards.
+
+## Local Control Plane
+
+It is possible for the helper to open apps, edit local files, and coordinate deeper workflows. That should be implemented as an explicit action broker, not ad-hoc browser JavaScript.
+
+Rules for future local actions:
+
+- Actions must be declared in config.
+- Dangerous actions need explicit allowlists.
+- Every action writes to `data/events.jsonl`.
+- The wallpaper can request actions through helper APIs, but the helper decides what is allowed.
+- File edits should target configured directories only, such as an Obsidian vault path.
 
 ## Integration Plan
 
 1. Add Obsidian vault reader for daily notes and tasks.
 2. Add GitHub sync with offline cache.
-3. Add weather sync with offline cache.
-4. Add Calendar sync from macOS Calendar or exported calendars.
-5. Add settings file for integration paths and tokens.
-6. Add a small diagnostics page for helper health.
+3. Add action broker for opening apps and editing allowlisted local files.
+4. Add a small diagnostics page for helper health.
+5. Add settings UI for integration paths and tokens.
 
 ## Principle
 

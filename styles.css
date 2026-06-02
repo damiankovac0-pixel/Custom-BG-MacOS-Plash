@@ -144,6 +144,43 @@ body.intro-leaving .intro {
     visibility 0ms linear 1100ms;
 }
 
+.background-signals {
+  position: absolute;
+  left: 72px;
+  right: 72px;
+  bottom: 58px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  color: oklch(70% 0.012 255 / 0.32);
+  font-size: clamp(0.66rem, 0.9vw, 0.82rem);
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.settled .background-signals {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.background-signals span {
+  max-width: min(42vw, 680px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.background-signals [data-status="online"] {
+  color: oklch(76% 0.024 230 / 0.5);
+}
+
 body.settled .dashboard {
   opacity: 1;
   visibility: visible;
@@ -166,8 +203,7 @@ body.intro-active .dashboard {
 }
 
 .panel-kicker,
-.todo-form label,
-.signal-grid span {
+.todo-form label {
   margin: 0;
   color: var(--quiet);
   font-size: 0.68rem;
@@ -191,47 +227,6 @@ body.intro-active .dashboard {
   font-family: "SF Pro Text", system-ui, sans-serif;
   font-size: 0.9rem;
   line-height: 1.45;
-}
-
-.signal-grid {
-  display: flex;
-  gap: 12px;
-  margin: 1.55rem 0 1.2rem;
-}
-
-.signal-grid article {
-  min-width: 132px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.signal-grid strong {
-  display: block;
-  margin-top: 0.42rem;
-  color: var(--accent);
-  font-size: 0.92rem;
-  letter-spacing: 0.02em;
-}
-
-.offline-signal {
-  position: relative;
-  padding-left: 1rem;
-}
-
-.offline-signal::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 0.46rem;
-  height: 0.46rem;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 18px oklch(78% 0.105 205 / 0.56);
-  transform: translateY(-50%);
-  animation: offlinePulse 1800ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 .todo-form {
@@ -381,6 +376,7 @@ body.settled .ambient-clock {
 
 body.preboot .intro,
 body.preboot .ambient-clock,
+body.preboot .background-signals,
 body.preboot .dashboard,
 body.preboot .background-stage {
   opacity: 0;
@@ -404,6 +400,12 @@ body.preboot .background-stage {
     top: clamp(84px, 18vh, 132px);
     width: auto;
   }
+
+  .background-signals {
+    left: clamp(20px, 6vw, 36px);
+    right: clamp(20px, 6vw, 36px);
+    bottom: clamp(18px, 6vw, 36px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -411,26 +413,10 @@ body.preboot .background-stage {
   body.intro-visible .intro,
   body.intro-leaving .intro,
   .ambient-clock,
+  .background-signals,
   .dashboard,
   .background-stage {
     transform: none;
     transition-property: opacity;
-  }
-
-  .offline-signal::before {
-    animation: none;
-  }
-}
-
-@keyframes offlinePulse {
-  0%,
-  100% {
-    opacity: 0.46;
-    transform: translateY(-50%) scale(0.82);
-  }
-
-  50% {
-    opacity: 1;
-    transform: translateY(-50%) scale(1.08);
   }
 }
