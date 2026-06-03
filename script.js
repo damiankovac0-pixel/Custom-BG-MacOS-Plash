@@ -5,13 +5,6 @@ const GREETINGS = [
   { start: 22, key: "night", short: "Good Night", full: "Good Night Damian" }
 ];
 
-const INTRO_TIMING = {
-  bootScanAt: 240,
-  bootLockAt: 1180,
-  showAfter: 1680,
-  holdFor: 2500,
-  fadeFor: 1400
-};
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:4173" : "";
 
 const greeting = document.querySelector("#greeting");
@@ -30,9 +23,6 @@ const calendarPanel = document.querySelector("#calendarPanel");
 const calendarClose = document.querySelector("#calendarClose");
 const todayEvents = document.querySelector("#todayEvents");
 const weekEvents = document.querySelector("#weekEvents");
-const bootWeather = document.querySelector("#bootWeather");
-const bootCalendar = document.querySelector("#bootCalendar");
-const bootWake = document.querySelector("#bootWake");
 
 let introTimers = [];
 let lastIntroAt = 0;
@@ -119,10 +109,6 @@ function renderSignals() {
     calendarValue.textContent = calendar?.label || "Unavailable";
     calendarMeta.textContent = appState ? "macOS Calendar permission needed" : "Connecting to helper";
   }
-
-  bootWeather.textContent = weather?.status === "online" ? `weather uplink stable / ${weather.label}` : "weather uplink degraded";
-  bootCalendar.textContent = calendar?.status === "online" || hasCalendarData ? "calendar uplink cached / readable" : "calendar uplink awaiting permission";
-  bootWake.textContent = appState?.lastWakeAt ? "wake signal captured / pmset" : "wake signal local clock";
 }
 
 function renderCalendarPanel() {
@@ -187,48 +173,39 @@ function queueIntroStep(callback, delay) {
   introTimers.push(timer);
 }
 
-function playIntro({ force = false } = {}) {
-  const now = Date.now();
-
-  if (!force && now - lastIntroAt < 8000) return;
-
-  lastIntroAt = now;
-  localStorage.setItem("customBGPlash.lastIntroAt", String(now));
-  if (appState?.lastWakeAt) {
-    localStorage.setItem("customBGPlash.lastIntroWakeAt", appState.lastWakeAt);
-  }
+function playIntro() {
   clearIntroTimers();
   updateTime();
 
-  document.body.classList.remove("preboot", "boot-scan", "boot-lock", "intro-visible", "intro-leaving", "settled");
-  document.body.classList.add("intro-active", "booting");
-
-  queueIntroStep(() => {
-    document.body.classList.add("boot-scan");
-  }, INTRO_TIMING.bootScanAt);
-
-  queueIntroStep(() => {
-    document.body.classList.add("boot-lock");
-  }, INTRO_TIMING.bootLockAt);
+  document.body.classList.remove("preboot", "intro-visible", "intro-leaving", "settled");
+  document.body.classList.add("intro-active");
 
   queueIntroStep(() => {
     document.body.classList.add("intro-visible");
-  }, INTRO_TIMING.showAfter);
+  }, 80);
 
   queueIntroStep(() => {
     document.body.classList.add("intro-leaving", "settled");
     document.body.classList.remove("intro-visible");
-  }, INTRO_TIMING.showAfter + INTRO_TIMING.holdFor);
+  }, 3400);
 
   queueIntroStep(() => {
-    document.body.classList.remove("intro-active", "intro-leaving", "booting", "boot-scan", "boot-lock");
-  }, INTRO_TIMING.showAfter + INTRO_TIMING.holdFor + INTRO_TIMING.fadeFor);
+    document.body.classList.remove("intro-active", "intro-leaving");
+  }, 4400);
+
+  lastIntroAt = Date.now();
+  try {
+    localStorage.setItem("customBGPlash.lastIntroAt", String(lastIntroAt));
+    if (appState?.lastWakeAt) {
+      localStorage.setItem("customBGPlash.lastIntroWakeAt", appState.lastWakeAt);
+    }
+  } catch {}
 }
 
 function settleWithoutIntro() {
   clearIntroTimers();
   updateTime();
-  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving", "booting", "boot-scan", "boot-lock");
+  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving");
   document.body.classList.add("settled");
 }
 
@@ -280,15 +257,14 @@ function boostWallpaper(fromEvent) {
     const target = fromEvent.target;
     if (target.closest(".calendar-panel, .signal, .boot-sequence, #calendarClose")) return;
   }
+  if (wallpaperVideo.readyState < 2) return;
 
   window.clearTimeout(boostTimer);
-  wallpaperVideo.playbackRate = 2.8;
-  document.body.classList.add("video-boost");
+  wallpaperVideo.playbackRate = 1.8;
 
   boostTimer = window.setTimeout(() => {
     wallpaperVideo.playbackRate = 1;
-    document.body.classList.remove("video-boost");
-  }, 720);
+  }, 600);
 }
 
 document.addEventListener("click", boostWallpaper);
@@ -303,7 +279,7 @@ window.requestAnimationFrame(async () => {
   await fetchState();
 
   if (shouldPlayIntroOnLoad()) {
-    playIntro({ force: true });
+    playIntro();
   } else {
     settleWithoutIntro();
   }
