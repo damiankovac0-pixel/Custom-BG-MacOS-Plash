@@ -23,6 +23,9 @@ const calendarPanel = document.querySelector("#calendarPanel");
 const calendarClose = document.querySelector("#calendarClose");
 const todayEvents = document.querySelector("#todayEvents");
 const weekEvents = document.querySelector("#weekEvents");
+const bootWeather = document.querySelector("#bootWeather");
+const bootCalendar = document.querySelector("#bootCalendar");
+const bootWake = document.querySelector("#bootWake");
 
 let introTimers = [];
 let lastIntroAt = 0;
@@ -109,6 +112,10 @@ function renderSignals() {
     calendarValue.textContent = calendar?.label || "Unavailable";
     calendarMeta.textContent = appState ? "macOS Calendar permission needed" : "Connecting to helper";
   }
+
+  bootWeather.textContent = weather?.status === "online" ? `weather uplink stable / ${weather.label}` : "weather uplink degraded";
+  bootCalendar.textContent = calendar?.status === "online" || hasCalendarData ? "calendar uplink cached / readable" : "calendar uplink awaiting permission";
+  bootWake.textContent = appState?.lastWakeAt ? "wake signal captured / pmset" : "wake signal local clock";
 }
 
 function renderCalendarPanel() {
@@ -177,8 +184,16 @@ function playIntro() {
   clearIntroTimers();
   updateTime();
 
-  document.body.classList.remove("preboot", "intro-visible", "intro-leaving", "settled");
-  document.body.classList.add("intro-active");
+  document.body.classList.remove("preboot", "boot-scan", "boot-lock", "intro-visible", "intro-leaving", "settled");
+  document.body.classList.add("intro-active", "booting");
+
+  queueIntroStep(() => {
+    document.body.classList.add("boot-scan");
+  }, 60);
+
+  queueIntroStep(() => {
+    document.body.classList.add("boot-lock");
+  }, 280);
 
   queueIntroStep(() => {
     document.body.classList.add("intro-visible");
@@ -190,7 +205,7 @@ function playIntro() {
   }, 3400);
 
   queueIntroStep(() => {
-    document.body.classList.remove("intro-active", "intro-leaving");
+    document.body.classList.remove("intro-active", "intro-leaving", "booting", "boot-scan", "boot-lock");
   }, 4400);
 
   lastIntroAt = Date.now();
@@ -205,7 +220,7 @@ function playIntro() {
 function settleWithoutIntro() {
   clearIntroTimers();
   updateTime();
-  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving");
+  document.body.classList.remove("preboot", "intro-active", "intro-visible", "intro-leaving", "booting", "boot-scan", "boot-lock");
   document.body.classList.add("settled");
 }
 
