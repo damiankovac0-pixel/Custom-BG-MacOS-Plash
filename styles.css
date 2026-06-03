@@ -912,7 +912,7 @@ body.preboot .background-stage {
     background-color: oklch(3% 0.006 255);
   }
 
-  62% {
+  40% {
     opacity: 1;
   }
 

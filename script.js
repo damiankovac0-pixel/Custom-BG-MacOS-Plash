@@ -197,16 +197,16 @@ function playIntro() {
 
   queueIntroStep(() => {
     document.body.classList.add("intro-visible");
-  }, 80);
+  }, 1400);
 
   queueIntroStep(() => {
     document.body.classList.add("intro-leaving", "settled");
     document.body.classList.remove("intro-visible");
-  }, 3400);
+  }, 4200);
 
   queueIntroStep(() => {
     document.body.classList.remove("intro-active", "intro-leaving", "booting", "boot-scan", "boot-lock");
-  }, 4400);
+  }, 5200);
 
   lastIntroAt = Date.now();
   try {
