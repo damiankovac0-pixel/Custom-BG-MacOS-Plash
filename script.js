@@ -272,6 +272,27 @@ document.addEventListener("click", (event) => {
   setCalendarPanel(false);
 });
 
+const wallpaperVideo = document.querySelector(".wallpaper-video");
+let boostTimer = null;
+
+function boostWallpaper(fromEvent) {
+  if (fromEvent) {
+    const target = fromEvent.target;
+    if (target.closest(".calendar-panel, .signal, .boot-sequence, #calendarClose")) return;
+  }
+
+  window.clearTimeout(boostTimer);
+  wallpaperVideo.playbackRate = 2.8;
+  document.body.classList.add("video-boost");
+
+  boostTimer = window.setTimeout(() => {
+    wallpaperVideo.playbackRate = 1;
+    document.body.classList.remove("video-boost");
+  }, 720);
+}
+
+document.addEventListener("click", boostWallpaper);
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setCalendarPanel(false);
 });

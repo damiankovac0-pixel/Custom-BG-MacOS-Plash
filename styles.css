@@ -146,6 +146,11 @@ body.boot-lock .wallpaper-video {
   filter: saturate(1.08) contrast(1.18) brightness(var(--video-brightness));
 }
 
+body.video-boost .wallpaper-video {
+  filter: saturate(1.2) contrast(1.08) brightness(calc(var(--video-brightness) + 0.12));
+  transition: filter 80ms ease-out;
+}
+
 .future-background {
   background:
     radial-gradient(circle at 22% 32%, var(--phase-fog), transparent 25vw),
@@ -283,6 +288,14 @@ body.boot-lock .wallpaper-video {
     radial-gradient(circle at 50% 52%, transparent 0 35%, oklch(3% 0.006 255 / 0.46) 100%),
     linear-gradient(180deg, oklch(3% 0.006 255 / 0.56), transparent 30%, oklch(3% 0.006 255 / 0.62)),
     linear-gradient(90deg, oklch(3% 0.006 255 / 0.34), transparent 22%, transparent 78%, oklch(3% 0.006 255 / 0.34));
+}
+
+body.video-boost .soft-vignette {
+  background:
+    radial-gradient(circle at 50% 52%, color-mix(in oklch, var(--phase-primary) 14%, transparent) 0%, transparent 18%, oklch(3% 0.006 255 / 0.46) 100%),
+    linear-gradient(180deg, oklch(3% 0.006 255 / 0.56), transparent 30%, oklch(3% 0.006 255 / 0.62)),
+    linear-gradient(90deg, oklch(3% 0.006 255 / 0.34), transparent 22%, transparent 78%, oklch(3% 0.006 255 / 0.34));
+  transition: background 120ms ease-out;
 }
 
 .boot-sequence {
